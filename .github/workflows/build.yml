@@ -105,9 +105,10 @@ jobs:
         run: |
           make http-client
 
-      - name: invoke the chain
+      - name: invoke the service
         run: |
-          ./client/http-client -f ${{ env.URLS_FILE }} -url 0.0.0.0 -c 2 -n 10 -w 10 -v
+          ./client/http-client -f ${{ env.URLS_FILE }} -url 0.0.0.0 -c 2 -n 10 -w 0 -v
+          curl 0.0.0.0:9999/
 
       - name: show docker-compose log
         run: cat log_file

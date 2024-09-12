@@ -22,8 +22,8 @@ services:
 
 
   nodeapp:
-    image: davidschall/nodeapp-todo
-    # image: davidschall/nodeapp-cart
+    # image: davidschall/nodeapp-todo
+    image: davidschall/nodeapp-cart
     container_name: nodeapp
     ports:
       - 3000:3000
