@@ -1,0 +1,38 @@
+### Docker Compose Example for Kinda Lame
+### Created October 2020
+###
+version: '3.2'
+services:
+
+
+  nginx:
+    depends_on:
+      - nodeapp
+    links:
+      - nodeapp
+    container_name: nginx
+    image: davidschall/nodeapp-nginx:latest
+    ports:
+      - 9999:80
+    volumes:
+        # - ./nginx2:/etc/nginx/conf.d
+        # - ./nginx:/etc/nginx/conf.d
+        - ./logs/nginx:/var/log/nginx
+    restart: unless-stopped
+
+
+  nodeapp:
+    image: davidschall/nodeapp-todo
+    # image: davidschall/nodeapp-cart
+    container_name: nodeapp
+    ports:
+      - 3000:3000
+    # links:
+    #   - database
+    #   - memcached
+    # depends_on:
+    #   - database
+    #   - memcached
+    restart: unless-stopped
+
+

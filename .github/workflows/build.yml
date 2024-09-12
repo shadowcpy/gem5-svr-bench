@@ -1,0 +1,113 @@
+name: Benchmark Build and Push
+
+on:
+  # schedule:
+  #   - cron: "0 9 * * 1"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/**"
+
+  pull_request:
+    branches: [main]
+    paths:
+      - "benchmarks/**"
+
+env:
+  GOOS: linux
+  GO111MODULE: on
+  PLATFORMS: linux/amd64,linux/arm64
+
+jobs:
+  build-and-push:
+    name: Build and push all images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: nodeapp-nginx
+            dir: nodeapp
+          - container: nodeapp-todo
+            dir: nodeapp
+          - container: nodeapp-cart
+            dir: nodeapp
+
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+        with:
+          lfs: "true"
+
+      # - uses: actions/setup-go@v3
+      #   with:
+      #     go-version: '1.18'
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          file: ./benchmarks/${{ matrix.dir }}/Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          target: ${{ matrix.container }}
+          tags: davidschall/${{ matrix.container }}:latest
+          context: ./benchmarks/${{ matrix.dir }}
+
+
+  test-compose:
+    name: Test Docker Compose
+    needs: build-and-push
+    env:
+      YAML_FILE: benchmarks/nodeapp/docker-compose.yaml
+      URLS_FILE: benchmarks/nodeapp/urls.tmpl
+    runs-on: ubuntu-20.04
+    # strategy:
+    #   fail-fast: false
+    #   matrix:
+    #     service:
+    #       [
+    #         nodeapp
+    #       ]
+
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+        with:
+          lfs: "true"
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.21'
+
+      - name: start docker-compose benchmark
+        run: |
+          docker compose -f ${{ env.YAML_FILE }} pull
+          docker compose -f ${{ env.YAML_FILE }} up &> log_file &
+          sleep 60s
+          cat log_file
+
+      - name: build client
+        working-directory: client
+        run: |
+          make http-client
+
+      - name: invoke the chain
+        run: |
+          ./client/http-client -f ${{ env.URLS_FILE }} -url 0.0.0.0 -c 2 -n 10 -w 10 -v
+
+      - name: show docker-compose log
+        run: cat log_file
