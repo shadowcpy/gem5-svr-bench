@@ -34,6 +34,7 @@ GOCMD=$(shell which go)
 GOCMD=/usr/local/go/bin/go
 
 .PHONY: m5ops
+.PHONY: clean
 
 SRC=m5ops.go
 BIN=http-client
@@ -45,6 +46,13 @@ dep_install:
   	&& sudo apt-get install -y \
 		gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu device-tree-compiler
 
+
+## Configure the m5 address depending on the architecture
+ifeq ($(ARCH), arm64)
+M5OP_ADDR=0x10010000
+else
+M5OP_ADDR=0xffff0000
+endif
 
 ## Assembly files
 M5OP_S := $(DIR)/m5op.S
@@ -67,16 +75,15 @@ endif
 CFLAGS = -g -fPIC
 DIR = m5
 
-CFILES  := $(wildcard $(DIR)/*.c)
-SFILES := $(wildcard  $(DIR)/*.S)
-OBJFILES := $(CFILES:.c=.o) $(SFILES:.S=.o)
+SFILES :=$(DIR)/m5op.S $(DIR)/m5op_addr.S
+OBJFILES := $(DIR)/m5_mmap.o $(SFILES:.S=.o)
 
 
 %.o : %.S
 		$(CC) -o $@ $< -c -g -fPIC
 
-%.o : %.c
-		$(CC) -o $@ $< -c -g -fPIC
+$(DIR)/m5_mmap.o : $(DIR)/m5_mmap.c
+		$(CC) -DM5OP_ADDR=$(M5OP_ADDR) -o $@ $< -c -g -fPIC
 
 m5ops: $(OBJFILES)
 		$(AR) rc -o $(DIR)/lib$@.a $^
@@ -90,7 +97,7 @@ m5lib: $(M5OP_S) m5ops
 _CGO_LDFLAGS="-g -O2 -no-pie"
 
 $(BIN): main.go m5lib
-	CC=$(CC) CGO_LDFLAGS=$(_CGO_LDFLAGS) CGO_ENABLED=1 GOOS=linux GOARCH=$(ARCH) go build -o $@ -v main.go
+	CC=$(CC) CGO_CFLAGS="-DM5OP_ADDR=$(M5OP_ADDR)" CGO_LDFLAGS=$(_CGO_LDFLAGS) CGO_ENABLED=1 GOOS=linux GOARCH=$(ARCH) go build -o $@ -v main.go
 
 
 all: $(BIN)

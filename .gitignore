@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+
+wkdir*
+packer
+image/artifacts/*
+*flash*
+m5out
+checkpoints
+results

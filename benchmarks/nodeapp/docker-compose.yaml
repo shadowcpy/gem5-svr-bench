@@ -1,7 +1,5 @@
-### Docker Compose Example for Kinda Lame
-### Created October 2020
+### Docker Compose for Nodeapp
 ###
-version: '3.2'
 services:
 
 
