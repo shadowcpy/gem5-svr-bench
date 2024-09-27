@@ -1,9 +1,9 @@
 #cloud-config
-disable_root: true
+disable_root: false
 ssh_pwauth: true
-# chpasswd:
-#   list: |
-#     root:$6$FhcddHFVZ7ABA4Gi$9l4yURWASWe8xEa1jzI0bacVLvhe3Yn4/G3AnU11K3X0yu/mICVRxfo6tZTB2noKljlIRzjkVZPocdf63MtzC0
+chpasswd:
+  list: |
+    root:$6$FhcddHFVZ7ABA4Gi$9l4yURWASWe8xEa1jzI0bacVLvhe3Yn4/G3AnU11K3X0yu/mICVRxfo6tZTB2noKljlIRzjkVZPocdf63MtzC0
 
 users:
 - name: gem5
@@ -31,8 +31,10 @@ runcmd:
 
 apt:
   primary:
-   - arches: [default]
-     uri: http://us.ports.ubuntu.com/ubuntu-ports
+    - arches: [default]
+      uri: http://archive.ubuntu.com/ubuntu/
+    - arches: [arm64, armhf]
+      uri: http://ports.ubuntu.com/ubuntu-ports/
 
 growpart:
   mode: auto

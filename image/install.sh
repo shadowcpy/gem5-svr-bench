@@ -2,15 +2,14 @@
 set -x -e
 
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+ARCH=$(dpkg --print-architecture)
 
 PACKER_VERSION="1.11.2"
 
-
-
 if [ ! -f ./packer ]; then
-    wget https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_arm64.zip;
-    unzip packer_${PACKER_VERSION}_linux_arm64.zip;
-    rm packer_${PACKER_VERSION}_linux_arm64.zip;
+    wget https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_${ARCH}.zip;
+    unzip packer_${PACKER_VERSION}_linux_${ARCH}.zip;
+    rm packer_${PACKER_VERSION}_linux_${ARCH}.zip;
 fi
 
 
@@ -19,21 +18,9 @@ fi
 config_file=$SCRIPTPATH/benchmarks.pkr.hcl
 
 
-make -f $SCRIPTPATH/arm.Makefile build-wkdir
+make -f $SCRIPTPATH/Makefile build-wkdir
 
-
-# if [ ! -f $WK_CLIENT ]; then
-    
-#     ## Make a copy of the disk image
-#     pushd ../client
-#     ARCH=arm64 make all
-#     popd
-#     cp ../client/http-client $WK_CLIENT
-
-# fi
-
-
-make -f $SCRIPTPATH/arm.Makefile  run 1> qemu.log 2>&1 &
+make -f $SCRIPTPATH/Makefile  run-$ARCH 1> qemu.log 2>&1 &
 
 QEMU_PID=$!
 echo "QEMU PID: $QEMU_PID"
@@ -51,7 +38,7 @@ if [ -f "$config_file" ]; then
     # Install the needed plugins
     ./packer init "$config_file"
     # Build the image
-    ./packer build "$config_file"
+    ./packer build "$config_file" 1> packer.log 2>&1
 else
     echo "Error: Configuration file '$config_file' not found."
     exit 1

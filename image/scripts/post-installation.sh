@@ -38,13 +38,18 @@ git sparse-checkout add util/m5
 git sparse-checkout add include
 git checkout
 # Install the headers globally so that other benchmarks can use them
-cp -r include/gem5 /usr/local/include/\
+sudo cp -r include/gem5 /usr/local/include/\
+
+ARCH=$(dpkg --print-architecture)
+if [ ${ARCH} == amd64 ]; then
+    ARCH=x86
+fi
 
 # Build the library and binary
 pushd util/m5
-scons build/arm64/out/m5
-cp build/arm64/out/m5 /usr/local/bin/
-cp build/arm64/out/libm5.a /usr/local/lib/
+scons build/${ARCH}/out/m5
+sudo cp build/${ARCH}/out/m5 /usr/local/bin/
+sudo cp build/${ARCH}/out/libm5.a /usr/local/lib/
 popd
 popd
 

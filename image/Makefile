@@ -24,17 +24,15 @@
 
 MKFILE 		:= $(abspath $(lastword $(MAKEFILE_LIST)))
 ROOT 		:= $(abspath $(dir $(MKFILE))/../)
-
+ARCH = $(shell dpkg --print-architecture)
 
 ## User specific inputs
-RES 	?= $(ROOT)/bm-disk/tmp-j/
-WORKING_DIR ?= wkdir3/
-# WORKING_DIR ?= $(ROOT)/wkdir/
+WORKING_DIR ?= $(ROOT)/wkdir/
 
 
 ## Machine parameter
-MEMORY 	:= 2G
-CPUS    := 2
+MEMORY 	:= 64G
+CPUS    := 16
 CPU 	?= host -enable-kvm
 
 
@@ -45,18 +43,18 @@ ARTIFACTS_DIR := $(ROOT)/image/artifacts/
 KERNEL  := $(ARTIFACTS_DIR)/kernel
 CLIENT 	:= $(ARTIFACTS_DIR)/http-client
 # DISK	:= $(ARTIFACTS_DIR)/disk-image.qcow2
-DISK	:= $(ROOT)/image/output-noble/ubuntu-noble.img
+# DISK	:= $(ROOT)/image/output-noble/ubuntu-noble.img
+DISK	:= $(ROOT)/image/output-jammy/ubuntu-jammy.img
 
 
 ## Dependencies -------------------------------------------------
 $(ARTIFACTS_DIR):
 	mkdir -p $@
-	# $(ROOT)/image/artifacts.py -o $@ --os-version=focal --arch=arm64
 	
 
 $(CLIENT): $(ARTIFACTS_DIR)
 	cd $(ROOT)/client && \
-	ARCH=arm64 make all
+	ARCH=$(ARCH) make all
 	cp $(ROOT)/client/http-client $@
 	
 
@@ -81,7 +79,7 @@ $(WORKING_DIR):
 # 	cp $< $@
 
 $(WK_KERNEL): 
-	wget -O $@ https://github.com/vhive-serverless/vSwarm-u/releases/download/v0.3.0/vmlinux-jammy-arm64
+	wget -O $@ https://github.com/vhive-serverless/vSwarm-u/releases/download/v0.3.0/vmlinux-jammy-${ARCH}
 
 
 $(WK_CLIENT): $(CLIENT)
@@ -108,7 +106,7 @@ $(FLASH1):
 	truncate -s 64M $@
 
 
-run: $(FLASH0) $(FLASH1)
+run-arm: $(FLASH0) $(FLASH1)
 	sudo qemu-system-aarch64 \
 		-nographic \
 		-M virt \
@@ -119,3 +117,18 @@ run: $(FLASH0) $(FLASH1)
     	-netdev type=user,id=net0,hostfwd=tcp:127.0.0.1:5555-:22  \
 		-drive file=$(WK_DISK),format=raw \
 		-drive file=$(FLASH0),format=raw,if=pflash -drive file=$(FLASH1),format=raw,if=pflash 
+
+
+
+run-x86:
+	sudo qemu-system-x86_64 \
+		-nographic -serial mon:stdio \
+		-cpu host -enable-kvm \
+		-smp ${CPUS} -m ${MEMORY} \
+		-drive file=$(WK_DISK),format=raw \
+		-device e1000,netdev=net0 \
+    	-netdev type=user,id=net0,hostfwd=tcp:127.0.0.1:5555-:22  \
+
+
+run-arm64: run-arm
+run-amd64: run-x86

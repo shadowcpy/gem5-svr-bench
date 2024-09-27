@@ -1,12 +1,29 @@
-# gem5-benchmarks
-A framework to run various server workloads on gem5
+# gem5 Server Benchmarks
+
+Goal: Building a framework to run various server workloads on gem5
 
 
+## Prerequisites
+
+```bash
+apt install -y qemu qemu-kvm virt-manager bridge-utils \
+                mkisofs
+```
+
+You may also have to install golang for building the http-client
+```
+rm -rf /usr/local/go && tar -C /usr/local -xzf go1.23.1.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+go version
+```
 
 
 ## Prepare the benchmark disk image
 
+### Build base disk image
+
 To create a fresh base image with docker and all gem5 tools installed use the `build_image.sh` script in the image folder.
+
 
 ```bash
 ./image/build_image.sh
@@ -15,15 +32,33 @@ By default this will build a base image using [packer](https://www.packer.io/) w
 The build process should take less than 20 min after which the new base image will be placed in the `output-noble` directory.
 
 
-## Install the benchmarks on the disks
+### Install the benchmarks on the disks
 
 The base image has only docker installed and all necessary tools. However, the docker images for the benchmarks are not pulled which needs to be done outside of gem5.
 
+Run the install script to automatically install the benchmarks onto the disk image.
 ```bash
 ./image/install.sh
 ```
+The script will create a new working directory `wkdir` and copy all files needed for the gem5 simulation needed (disk-image, kernel, http-client) into it.
+Afterwards the disk is booted with QEMU and the benchmarks container images pulled onto the disk.
 
 
+### Booting the disk image in QEMU
+
+To modify the disk image and add content manually create first the working directory with:
+```
+make -f image/Makefile build-wkdir 
+```
+Then boot the image with
+```
+make -f image/Makefile run-<x86/arm> 
+```
+QEMU will boot and automatically login as gem5 user. You can switch to the root user with `su` password `root`.
+
+
+
+## Gem5 simulation
 
 ## Boot benchmark and take snapshot
 

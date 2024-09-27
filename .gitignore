@@ -39,3 +39,4 @@ image/artifacts/*
 m5out
 checkpoints
 results
+*.img
