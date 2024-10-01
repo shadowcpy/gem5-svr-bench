@@ -2,6 +2,7 @@
 
 # Copyright (c) 2024 The Regents of the University of California.
 # SPDX-License-Identifier: BSD 3-Clause
+set -e -x
 
 echo 'Post Installation Started'
 
@@ -38,7 +39,7 @@ git sparse-checkout add util/m5
 git sparse-checkout add include
 git checkout
 # Install the headers globally so that other benchmarks can use them
-sudo cp -r include/gem5 /usr/local/include/\
+cp -r include/gem5 /usr/local/include/
 
 ARCH=$(dpkg --print-architecture)
 if [ ${ARCH} == amd64 ]; then
@@ -48,8 +49,8 @@ fi
 # Build the library and binary
 pushd util/m5
 scons build/${ARCH}/out/m5
-sudo cp build/${ARCH}/out/m5 /usr/local/bin/
-sudo cp build/${ARCH}/out/libm5.a /usr/local/lib/
+cp build/${ARCH}/out/m5 /usr/local/bin/
+cp build/${ARCH}/out/libm5.a /usr/local/lib/
 popd
 popd
 
@@ -60,6 +61,7 @@ chmod u+s /usr/local/bin/m5
 
 #create a symbolic link to the gem5 binary for backward compatibility
 ln -s /usr/local/bin/m5 /usr/local/bin/gem5-bridge
+which gem5-bridge
 
 # delete the git repo for gem5
 rm -rf gem5

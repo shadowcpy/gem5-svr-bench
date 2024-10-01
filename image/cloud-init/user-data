@@ -2,6 +2,7 @@
 disable_root: false
 ssh_pwauth: true
 chpasswd:
+  expire: False
   list: |
     root:$6$FhcddHFVZ7ABA4Gi$9l4yURWASWe8xEa1jzI0bacVLvhe3Yn4/G3AnU11K3X0yu/mICVRxfo6tZTB2noKljlIRzjkVZPocdf63MtzC0
 

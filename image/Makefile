@@ -27,7 +27,7 @@ ROOT 		:= $(abspath $(dir $(MKFILE))/../)
 ARCH = $(shell dpkg --print-architecture)
 
 ## User specific inputs
-WORKING_DIR ?= $(ROOT)/wkdir/
+WORKING_DIR ?= $(ROOT)/wkdir4/
 
 
 ## Machine parameter
@@ -43,8 +43,8 @@ ARTIFACTS_DIR := $(ROOT)/image/artifacts/
 KERNEL  := $(ARTIFACTS_DIR)/kernel
 CLIENT 	:= $(ARTIFACTS_DIR)/http-client
 # DISK	:= $(ARTIFACTS_DIR)/disk-image.qcow2
-# DISK	:= $(ROOT)/image/output-noble/ubuntu-noble.img
-DISK	:= $(ROOT)/image/output-jammy/ubuntu-jammy.img
+DISK	:= $(ROOT)/image/output-noble/ubuntu-noble.img
+# DISK	:= $(ROOT)/image/output-jammy/ubuntu-jammy.img
 
 
 ## Dependencies -------------------------------------------------
@@ -127,7 +127,7 @@ run-x86:
 		-smp ${CPUS} -m ${MEMORY} \
 		-drive file=$(WK_DISK),format=raw \
 		-device e1000,netdev=net0 \
-    	-netdev type=user,id=net0,hostfwd=tcp:127.0.0.1:5555-:22  \
+    	-netdev type=user,id=net0,hostfwd=tcp:127.0.0.1:5555-:22 
 
 
 run-arm64: run-arm

@@ -6,7 +6,8 @@ PACKER_VERSION="1.11.2"
 
 # Disk image configs
 ARCH=$(dpkg --print-architecture)
-OS_VERSION="jammy"
+# OS_VERSION="focal"
+OS_VERSION="noble"
 
 
 cd $SCRIPTPATH

@@ -103,7 +103,7 @@ build {
 
   provisioner "shell" {
     // run scripts with sudo, as the default cloud image user is unprivileged
-    execute_command = "echo '${var.ssh_password}' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    execute_command ="echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
     // NOTE: cleanup.sh should always be run last, as this performs post-install cleanup tasks
     scripts = [
       "scripts/install.sh",
