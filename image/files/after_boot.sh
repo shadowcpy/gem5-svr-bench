@@ -21,7 +21,6 @@ then
     M5_ADDR="--addr=0x10010000"
 else
     echo "On x86 machine"
-    M5_ADDR=0xffff0000
     M5_ADDR=""
 fi
 

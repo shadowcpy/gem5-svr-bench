@@ -43,7 +43,7 @@ ARTIFACTS_DIR := $(ROOT)/image/artifacts/
 KERNEL  := $(ARTIFACTS_DIR)/kernel
 CLIENT 	:= $(ARTIFACTS_DIR)/http-client
 # DISK	:= $(ARTIFACTS_DIR)/disk-image.qcow2
-DISK	:= $(ROOT)/image/output-noble/ubuntu-noble.img
+DISK	:= $(ROOT)/image/x86-disk-image-22-04_2/x86-ubuntu
 # DISK	:= $(ROOT)/image/output-jammy/ubuntu-jammy.img
 
 
@@ -127,7 +127,12 @@ run-x86:
 		-smp ${CPUS} -m ${MEMORY} \
 		-drive file=$(WK_DISK),format=raw \
 		-device e1000,netdev=net0 \
-    	-netdev type=user,id=net0,hostfwd=tcp:127.0.0.1:5555-:22 
+    	-netdev type=user,id=net0,hostfwd=tcp:127.0.0.1:5555-:22 \
+		-bios /usr/share/ovmf/OVMF.fd
+
+
+
+		# # -kernel $(WK_KERNEL) -append "init=/sbin/init.old"
 
 
 run-arm64: run-arm
