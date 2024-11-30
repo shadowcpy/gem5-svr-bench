@@ -80,6 +80,17 @@ build {
 
 
 
+  ## Fleetbench provisioning --------------------------
+  provisioner "file" {
+    destination = "fleetbench.patch"
+    source      = "${local.rootdir}/benchmarks/fleetbench/fleetbench.patch"
+  }
+
+  # 
+  provisioner "shell" {
+    execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
+    scripts         = ["${local.rootdir}/benchmarks/fleetbench/install_fleetbench.sh"]
+  }
 
 
 

@@ -48,7 +48,7 @@ The base image has only docker installed and all necessary tools. However, the d
 Run the install script to automatically install the benchmarks onto the disk image.
 ```bash
 
-./image/install.sh
+./scripts/install.sh
 ```
 The script will create a new working directory `wkdir` and copy all files needed for the gem5 simulation needed (disk-image, kernel, http-client) into it.
 Afterwards the disk is booted with QEMU and the benchmarks installed onto the disk
