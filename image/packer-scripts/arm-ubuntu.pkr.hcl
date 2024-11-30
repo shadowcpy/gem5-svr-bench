@@ -7,6 +7,11 @@ packer {
   }
 }
 
+locals {
+  rootdir = "${path.root}/../../"
+}
+
+
 variable "image_name" {
   type    = string
   default = "arm-ubuntu"
@@ -92,7 +97,7 @@ source "qemu" "initialize" {
                       "<wait>"
                       ]
   cpus             = "4"
-  disk_size        = "4600"
+  disk_size        = "15G"
   format           = "raw"
   headless         = "true"
   http_directory   = local.iso_data[var.ubuntu_version].http_directory
@@ -115,27 +120,27 @@ build {
 
   provisioner "file" {
     destination = "/home/gem5/"
-    source      = "files/exit.sh"
+    source      = "${local.rootdir}/image/files/exit.sh"
   }
 
   provisioner "file" {
     destination = "/home/gem5/"
-    source      = "files/gem5_init.sh"
+    source      = "${local.rootdir}/image/files/gem5_init.sh"
   }
 
   provisioner "file" {
     destination = "/home/gem5/"
-    source      = "files/after_boot.sh"
+    source      = "${local.rootdir}/image/files/after_boot.sh"
   }
 
   provisioner "file" {
     destination = "/home/gem5/"
-    source      = "files/serial-getty@.service"
+    source      = "${local.rootdir}/image/files/serial-getty@.service"
   }
 
   provisioner "shell" {
     execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
-    scripts         = ["scripts/post-installation.sh"]
+    scripts         = ["${local.rootdir}/image/scripts/post-installation.sh"]
     environment_vars = ["ISA=arm64"]
     expect_disconnect = true
   }

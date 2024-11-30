@@ -90,4 +90,8 @@ echo "Done building and installing gem5-bridge (m5) and libm5"
 #     netplan apply
 # fi
 
+# Disable password for sudo
+echo "gem5 ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+
 echo "Post Installation Done"

@@ -88,6 +88,7 @@ func main() {
 	str += fmt.Sprintf("Throughput:\t\t %f MB/s\n", float64(nb)/1024/1024/time.Since(start).Seconds())
 	log.Println(str)
 
+	time.Sleep(1 * time.Second)
 	// Run the actual jobs
 	m5.Fail(0, 4) // 21: Warmup done
 	start = time.Now()
