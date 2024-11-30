@@ -6,6 +6,9 @@ set -e -x
 
 echo 'Post Installation Started'
 
+# Installing the packages in this script instead of the user-data
+# file dueing ubuntu autoinstall. The reason is that sometimes
+# the package install failes. This method is more reliable.
 echo 'installing packages'
 apt-get update
 apt-get install -y scons
@@ -15,6 +18,13 @@ apt-get install -y build-essential
 
 echo "Installing serial service for autologin after systemd"
 mv /home/gem5/serial-getty@.service /lib/systemd/system/
+
+# Make sure the headers are installed to extract the kernel that DKMS
+# packages will be built against.
+sudo apt -y install "linux-headers-$(uname -r)" "linux-modules-extra-$(uname -r)"
+
+echo "Extracting linux kernel $(uname -r) to /home/gem5/vmlinux-x86-ubuntu"
+sudo bash -c "/usr/src/linux-headers-$(uname -r)/scripts/extract-vmlinux /boot/vmlinuz-$(uname -r) > /home/gem5/vmlinux-x86-ubuntu"
 
 echo "Installing the gem5 init script in /sbin"
 mv /home/gem5/gem5_init.sh /sbin
@@ -31,6 +41,12 @@ rm /etc/update-motd.d/*
 # Build and install the gem5-bridge (m5) binary, library, and headers
 echo "Building and installing gem5-bridge (m5) and libm5"
 
+# Ensure the ISA environment variable is set
+if [ -z "$ISA" ]; then
+  echo "Error: ISA environment variable is not set."
+  exit 1
+fi
+
 # Just get the files we need
 git clone https://github.com/gem5/gem5.git --depth=1 --filter=blob:none --no-checkout --sparse --single-branch --branch=stable
 pushd gem5
@@ -39,29 +55,24 @@ git sparse-checkout add util/m5
 git sparse-checkout add include
 git checkout
 # Install the headers globally so that other benchmarks can use them
-cp -r include/gem5 /usr/local/include/
-
-ARCH=$(dpkg --print-architecture)
-if [ ${ARCH} == amd64 ]; then
-    ARCH=x86
-fi
+cp -r include/gem5 /usr/local/include/\
 
 # Build the library and binary
 pushd util/m5
-scons build/${ARCH}/out/m5
-cp build/${ARCH}/out/m5 /usr/local/bin/
-cp build/${ARCH}/out/libm5.a /usr/local/lib/
-popd
-popd
+scons build/${ISA}/out/m5
+cp build/${ISA}/out/m5 /usr/local/bin/
+cp build/${ISA}/out/libm5.a /usr/local/lib/
+popd   # util/m5
+popd   # gem5
 
-
+# rename the m5 binary to gem5-bridge
+mv /usr/local/bin/m5 /usr/local/bin/gem5-bridge
 # Set the setuid bit on the m5 binary
-chmod 4755 /usr/local/bin/m5
-chmod u+s /usr/local/bin/m5
+chmod 4755 /usr/local/bin/gem5-bridge
+chmod u+s /usr/local/bin/gem5-bridge
 
 #create a symbolic link to the gem5 binary for backward compatibility
-ln -s /usr/local/bin/m5 /usr/local/bin/gem5-bridge
-which gem5-bridge
+ln -s /usr/local/bin/gem5-bridge /usr/local/bin/m5
 
 # delete the git repo for gem5
 rm -rf gem5
@@ -78,5 +89,9 @@ echo "Done building and installing gem5-bridge (m5) and libm5"
 #     mv /etc/netplan/00-installer-config.yaml /etc/netplan/00-installer-config.yaml.bak
 #     netplan apply
 # fi
+
+# Disable password for sudo
+echo "gem5 ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
 
 echo "Post Installation Done"

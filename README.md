@@ -1,35 +1,44 @@
 # gem5 Server Benchmarks
 
-Goal: Building a framework to run various server workloads on gem5
+This repo contains various server and data center workloads runnable in gem5 full-sytem mode
+
+> [!IMPORTANT]
+> This repo is in development phase. Please raise issues or propose PR if you encounter problems. We appreciate any feedback.
+
+
+
+
 
 
 ## Prerequisites
 
+Use the `install.sh` to install qemu along with other packages needed to build the disk image for gem5.
+
 ```bash
-apt install -y qemu qemu-kvm virt-manager bridge-utils \
-                mkisofs
+./setup/install.sh
 ```
 
-You may also have to install golang for building the http-client
-```
-rm -rf /usr/local/go && tar -C /usr/local -xzf go1.23.1.linux-amd64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-go version
-```
 
 
 ## Prepare the benchmark disk image
 
 ### Build base disk image
 
-To create a fresh base image with docker and all gem5 tools installed use the `build_image.sh` script in the image folder.
+To create a fresh base image with docker and all gem5 tools installed use the `build-<x86/arm>.sh` script in the image folder. This step has done only once and the same base disk image can be used for different workloads.
 
+> [!TIP]
+> The building process from the base disk image is inherited from [gem5-resources](https://github.com/gem5/gem5-resources). For further details refer to the build [README](./image/BUILDING.md).
+
+Use the corresponding script to build the x86 or Arm disk image. Note as the build process uses KVM you need to be on a Arm machine to build the arm disk image.
 
 ```bash
-./image/build_image.sh
+cd image
+# Build the disk image for x86 Ubuntu 22.04
+sudo ./build-x86.sh 22.04   
+cd ..
 ```
-By default this will build a base image using [packer](https://www.packer.io/) with Ubuntu 24.04. The OS version and the architecture can be configured in the packer configuration script (`ubuntu.pkr.hcl`).
-The build process should take less than 20 min after which the new base image will be placed in the `output-noble` directory.
+
+The build process should take less than 10 min after which the new base image will be placed in the `x86-disk-image-22-04` directory.
 
 
 ### Install the benchmarks on the disks
@@ -38,10 +47,11 @@ The base image has only docker installed and all necessary tools. However, the d
 
 Run the install script to automatically install the benchmarks onto the disk image.
 ```bash
+
 ./image/install.sh
 ```
 The script will create a new working directory `wkdir` and copy all files needed for the gem5 simulation needed (disk-image, kernel, http-client) into it.
-Afterwards the disk is booted with QEMU and the benchmarks container images pulled onto the disk.
+Afterwards the disk is booted with QEMU and the benchmarks installed onto the disk
 
 
 ### Booting the disk image in QEMU
@@ -54,7 +64,10 @@ Then boot the image with
 ```
 make -f image/Makefile run-<x86/arm> 
 ```
-QEMU will boot and automatically login as gem5 user. You can switch to the root user with `su` password `root`.
+Finally from another terminal login via ssh using port 5555.
+```
+ssh gem5@localhost -p 5555
+
 
 
 
@@ -65,6 +78,13 @@ QEMU will boot and automatically login as gem5 user. You can switch to the root 
 Before we can start simulating the actual benchmark (1) linux has to be booted, (2) the docker image has to be started and (3) the benchmarks JIT engine -- very common for server applications -- has to be warmed up.
 The KVM accelerated core is used to perform all three steps after which a checkpoint is taken.
 > Note KVM can only be used if the host ISA is the same as the simulated system.
+
+### On x86
+```bash
+# Simulate
+./<path/to/gem5>/build/X86/gem5.opt gem5-configs/x86-simple.py --kernel wkdir/kernel --disk wkdir/disk.img --mode=setup 
+```
+
 
 ### On Arm ISA
 

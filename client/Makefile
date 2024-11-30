@@ -25,7 +25,7 @@
 # Authors: David Schall
 
 MKFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
-ROOT 		:= $(abspath $(dir $(MKFILE))/../../)
+ROOT 		:= $(abspath $(dir $(MKFILE))/../)
 OUTPUT ?= test-client
 ARCH   ?= amd64
 

@@ -27,7 +27,7 @@ ROOT 		:= $(abspath $(dir $(MKFILE))/../)
 ARCH = $(shell dpkg --print-architecture)
 
 ## User specific inputs
-WORKING_DIR ?= $(ROOT)/wkdir4/
+WORKING_DIR ?= $(ROOT)/wkdir/
 
 
 ## Machine parameter
@@ -37,22 +37,18 @@ CPU 	?= host -enable-kvm
 
 
 ## Required artifacts
-ARTIFACTS_DIR := $(ROOT)/image/artifacts/
+TMP_DIR := $(ROOT)/image/tmp/
 
 
-KERNEL  := $(ARTIFACTS_DIR)/kernel
-CLIENT 	:= $(ARTIFACTS_DIR)/http-client
-# DISK	:= $(ARTIFACTS_DIR)/disk-image.qcow2
-DISK	:= $(ROOT)/image/output-noble/ubuntu-noble.img
-# DISK	:= $(ROOT)/image/output-jammy/ubuntu-jammy.img
-
+CLIENT 	:= $(TMP_DIR)/http-client
+DISK	:= $(ROOT)/image/x86-disk-image-22-04/x86-ubuntu
 
 ## Dependencies -------------------------------------------------
-$(ARTIFACTS_DIR):
+$(TMP_DIR):
 	mkdir -p $@
 	
 
-$(CLIENT): $(ARTIFACTS_DIR)
+$(CLIENT): $(TMP_DIR)
 	cd $(ROOT)/client && \
 	ARCH=$(ARCH) make all
 	cp $(ROOT)/client/http-client $@
@@ -67,7 +63,7 @@ WK_KERNEL 	:= $(WORKING_DIR)/kernel
 WK_DISK 	:= $(WORKING_DIR)/disk.img
 WK_CLIENT	:= $(WORKING_DIR)/test-client
 
-build-wkdir: $(WORKING_DIR) $(ARTIFACTS_DIR) \
+build-wkdir: $(WORKING_DIR) $(TMP_DIR) \
 	$(WK_DISK) $(WK_KERNEL) $(WK_CLIENT)
 
 
@@ -128,6 +124,8 @@ run-x86:
 		-drive file=$(WK_DISK),format=raw \
 		-device e1000,netdev=net0 \
     	-netdev type=user,id=net0,hostfwd=tcp:127.0.0.1:5555-:22 
+
+
 
 
 run-arm64: run-arm

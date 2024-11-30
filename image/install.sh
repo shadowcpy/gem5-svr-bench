@@ -15,7 +15,7 @@ fi
 
 
 # Store the configuration file name from the command line argument
-config_file=$SCRIPTPATH/benchmarks.pkr.hcl
+config_file=$SCRIPTPATH/packer-scripts/benchmarks.pkr.hcl
 
 
 make -f $SCRIPTPATH/Makefile build-wkdir
