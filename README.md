@@ -15,7 +15,7 @@ This repo contains various server and data center workloads runnable in gem5 ful
 Use the `install.sh` to install qemu along with other packages needed to build the disk image for gem5.
 
 ```bash
-./setup/install.sh
+./scripts/install.sh
 ```
 
 
@@ -48,7 +48,7 @@ The base image has only docker installed and all necessary tools. However, the d
 Run the install script to automatically install the benchmarks onto the disk image.
 ```bash
 
-./scripts/install.sh
+./image/install.sh
 ```
 The script will create a new working directory `wkdir` and copy all files needed for the gem5 simulation needed (disk-image, kernel, http-client) into it.
 Afterwards the disk is booted with QEMU and the benchmarks installed onto the disk
@@ -64,10 +64,10 @@ Then boot the image with
 ```
 make -f image/Makefile run-<x86/arm> 
 ```
-Finally from another terminal login via ssh using port 5555.
+Finally, for debugging purposes, you can use another terminal login via ssh using port 5555.
 ```
 ssh gem5@localhost -p 5555
-
+```
 
 
 
@@ -97,10 +97,10 @@ This will take 5-10 minutes. The progress can be inspected via the `m5term` term
 
 ## Simulation
 
-Once the setup step has been performed and the checkpoint is taken simulations can be performed by invoking the same script with the `--mode=evaluation` parameter.
+Once the setup step has been performed and the checkpoint is taken simulations can be performed by invoking the same script with the `--mode=eval` parameter.
 
 ### On Arm
 ```bash
 # Simulate
-./<path/to/gem5>/build/ARM/gem5.opt gem5-configs/arm-simple.py --kernel wkdir/kernel --disk wkdir/disk.img --mode=evaluation
+./<path/to/gem5>/build/ARM/gem5.opt gem5-configs/arm-simple.py --kernel wkdir/kernel --disk wkdir/disk.img --mode=eval
 ```
