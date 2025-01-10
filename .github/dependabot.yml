@@ -11,6 +11,9 @@ updates:
       - "./benchmarks/nodeapp/nodejs-todo/"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
 
   # Enable version updates for Actions
   - package-ecosystem: "github-actions"
