@@ -27,7 +27,7 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 
 
 #### Data base
-FROM mariadb:10.6.13-focal AS mediawiki-db
+FROM mariadb:11.2-jammy AS mediawiki-db
 # Add the database dump
 COPY ./wiki.sql.gz /docker-entrypoint-initdb.d/wiki.sql.gz
 
