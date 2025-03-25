@@ -18,9 +18,9 @@ git clone https://github.com/google/fleetbench.git
 cd fleetbench
 mkdir -p build
 
-# VERSION=c1d0f72
+VERSION=cd20746b68b307b148a761c676d6400f2541082d
 
-# git checkout $VERSION
+git checkout $VERSION
 
 
 
