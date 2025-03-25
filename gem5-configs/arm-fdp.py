@@ -45,12 +45,13 @@ scons build/<ALL|ARM>/gem5.opt -j<NUM_CPUS>
 """
 import m5
 
+from gem5.components.boards.arm_board import ArmBoard
 from gem5.components.boards.x86_board import X86Board
 from gem5.components.memory import DualChannelDDR4_2400
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.components.processors.simple_processor import SimpleProcessor
 from gem5.isas import ISA
-from gem5.resources.resource import KernelResource,DiskImageResource
+from gem5.resources.resource import KernelResource,DiskImageResource, obtain_resource
 from gem5.simulate.exit_event import ExitEvent
 from gem5.simulate.simulator import Simulator
 from gem5.utils.requires import requires
@@ -95,7 +96,7 @@ if args.mode == "setup":
 
 processor = SimpleProcessor(
     cpu_type=CPUTypes.KVM if args.mode=="setup" else cpu_types[args.cpu_type],
-    isa=ISA.X86,
+    isa=ISA.ARM,
     num_cores=2,
 )
 cpu = processor.cores[-1].core
@@ -261,11 +262,25 @@ cache_hierarchy = CacheHierarchy(
 
 memory = DualChannelDDR4_2400(size="3GB")
 
-board = X86Board(
+
+# The ArmBoard requires a `release` to be specified. This adds all the
+# extensions or features to the system. We are setting this to Armv8
+# (ArmDefaultRelease) in this example config script.
+release = ArmDefaultRelease.for_kvm()
+
+# The platform sets up the memory ranges of all the on-chip and off-chip
+# devices present on the ARM system. ARM KVM only works with VExpress_GEM5_V1
+# on the ArmBoard at the moment.
+platform = VExpress_GEM5_V1()
+
+# Here we setup the board. The ArmBoard allows for Full-System ARM simulations.
+board = ArmBoard(
     clk_freq="3GHz",
     processor=processor,
     memory=memory,
     cache_hierarchy=cache_hierarchy,
+    release=release,
+    platform=platform,
 )
 
 
@@ -279,6 +294,12 @@ def executeExit():
         yield False
 
         print("3: Pinned container")
+        yield False
+
+        print("4: Stop client")
+        yield False
+
+        print("5: Stop container")
         yield False
 
         print("6: Stop simulation")
@@ -328,10 +349,12 @@ def maxInsts():
 board.set_kernel_disk_workload(
     kernel=KernelResource(args.kernel),
     disk_image=DiskImageResource(args.disk),
+    bootloader=obtain_resource("arm64-bootloader"),
     readfile_contents=wlcfg[args.workload]["runscript"](wlcfg[args.workload], 1),
-    kernel_args=['earlyprintk=ttyS0', 'console=ttyS0', 'lpj=7999923',
-                 'root=/dev/sda2',
-                #  'isolcpus=1',
+    kernel_args=["console=ttyAMA0",
+                 "lpj=19988480", "norandmaps",
+                 "root=/dev/vda2", "disk_device=/dev/vda2",
+                 'isolcpus=1',
                  'cloud-init=disabled',
                  'mitigations=off',
                 ],
