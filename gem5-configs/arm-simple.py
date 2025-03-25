@@ -127,25 +127,6 @@ board = ArmBoard(
 
 
 
-
-def workitems(start) -> bool:
-    cnt = 1
-    while True:
-        if start:
-            print("Begin Invocation ", cnt)
-        else:
-            print("End Invocation ", cnt)
-            if args.mode == "eval":
-                m5.stats.dump()
-                m5.stats.reset()
-
-            cnt += 1
-
-        if args.mode == "eval" and cnt >= args.num_invocations:
-            yield True
-        yield False
-
-
 def executeExit() -> bool:
 
     if args.mode == "setup":
@@ -234,9 +215,6 @@ class MySimulator(Simulator):
 simulator = MySimulator(
     board=board,
     on_exit_event={
-        # ExitEvent.EXIT: (func() for func in [processor.switch]),
-        # ExitEvent.WORKBEGIN: workitems(True),
-        # ExitEvent.WORKEND: workitems(False),
         ExitEvent.EXIT: executeExit(),
         ExitEvent.FAIL: executeFail(),
         ExitEvent.MAX_INSTS: maxInsts(),
