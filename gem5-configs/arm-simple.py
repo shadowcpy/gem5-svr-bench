@@ -140,19 +140,13 @@ def executeExit() -> bool:
         print("3: Pinned container")
         yield False
 
-        print("4: Stop client")
-        yield False
-
-        print("5: Stop container")
-        yield False
-
         print("6: Stop simulation")
         yield True
 
     else:
         print("Simulation done")
         m5.stats.dump()
-        m5.exit()
+        yield True
 
 
 
