@@ -150,16 +150,16 @@ class BPLTage(LTAGE):
 cpu.branchPred = BPLTage()
 cpu.branchPred.tage.speculativeHistUpdate=True
 
+cpu.fetchBufferSize = 16
+cpu.fetchTargetWidth = 32
 
 if args.fdp:
     # We need to configure the decoupled front-end with some specific parameters.
     # First the fetch buffer and fetch target size. We want double the size of
     # the fetch buffer to be able to run ahead of fetch
     print("!! FDP enabled !!")
-    cpu.fetchBufferSize = 16
-    cpu.fetchTargetWidth = 32
-    cpu.minInstSize = 1
     cpu.bacBranchPredictDelay = 1
+    cpu.minInstSize = 1
     cpu.decoupledFrontEnd = True
 
 
@@ -294,12 +294,6 @@ def executeExit():
         yield False
 
         print("3: Pinned container")
-        yield False
-
-        print("4: Stop client")
-        yield False
-
-        print("5: Stop container")
         yield False
 
         print("6: Stop simulation")
