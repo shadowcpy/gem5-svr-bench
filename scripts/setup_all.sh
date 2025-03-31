@@ -26,24 +26,16 @@
 # Execute this script using
 #   ./setup_all_functions.sh <results>
 
-set -x
+set -xu
 
-ARCH=${1:-$(dpkg --print-architecture)}
+ARCH=$(dpkg --print-architecture)
 
 
-if [ $ARCH == "amd64" ]; then
-    GEM5=./../gem5/build/X86/gem5.opt
-    GEM5_CONFIG=./gem5-configs/x86-simple.py
-elif [ $ARCH == "arm64" ]; then
-    GEM5=./../gem5/build/ARM/gem5.opt
-    GEM5_CONFIG=./gem5-configs/arm-simple.py
-else
-    echo "Invalid architecture: $ARCH"
-    exit 1
-fi
+GEM5=./../build/ALL/gem5.opt
+GEM5_CONFIG=./gem5-configs/fs-fdp.py
 
-KERNEL=./wkdir/kernel
-DISK_IMAGE=./wkdir/disk.img
+KERNEL="./wkdir/$ARCH/kernel"
+DISK_IMAGE="./wkdir/$ARCH/disk.img"
 
 
 
@@ -54,7 +46,7 @@ DISK_IMAGE=./wkdir/disk.img
 
 
 ################################################################################
-sudo chown $USER /dev/kvm
+sudo chown $(id -u) /dev/kvm
 
 
 
@@ -77,7 +69,7 @@ BENCHMARKS+=("stl")
 
 
 # Define the output file of your run
-RESULTS_DIR=./results/setup
+RESULTS_DIR="./results/$ARCH/setup"
 
 
 
@@ -88,14 +80,13 @@ do
     ## Create output directory
     mkdir -p $OUTDIR
 
-    screen -d -S "svr-setup-$bm" -m bash -c "$GEM5 \
+    screen -d -S "setup-$bm" -m bash -c "$GEM5 \
         --outdir=$OUTDIR \
             $GEM5_CONFIG \
                 --kernel $KERNEL \
                 --disk $DISK_IMAGE \
                 --workload ${bm} \
                 --mode=setup \
-                --disable-fdp \
             > $OUTDIR/gem5.log 2>&1"
 
 done

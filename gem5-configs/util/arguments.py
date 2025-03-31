@@ -21,31 +21,27 @@
 # Install dependencies
 
 from gem5.components.processors.cpu_types import CPUTypes
+from gem5.isas import ISA
 
-from .workloads import * 
+from .workloads import *
 import argparse
 
-cpu_types = {
-    "atomic": CPUTypes.ATOMIC,
-    "timing": CPUTypes.TIMING,
-    "o3": CPUTypes.O3,
-}
 
 parser = argparse.ArgumentParser(
-    description="gem5 configuration script to run a full system x86 simulation"
+    description="gem5 configuration script to run a full system simulation"
 )
 
 parser.add_argument(
     "--kernel",
     type=str,
-    default="wkdir/kernel",
+    default="wkdir4/kernel",
     help="The kernel image to boot the system.",
 )
 
 parser.add_argument(
     "--disk",
     type=str,
-    default="wkdir/disk.img",
+    default="wkdir4/disk.img",
     help="The disk image to boot the system.",
 )
 
@@ -53,23 +49,9 @@ parser.add_argument(
     "-w","--workload",
     action="store",
     type=str,
-    choices=wlcfg.keys(),
     default="nodeapp",
+    choices=wlcfg.keys(),
     help="""Specify a workload that should run in the simulator.""",
-)
-
-parser.add_argument(
-    "--atomic-warming",
-    type=int,
-    default=5000,
-    help="""Perform warming of the cache hierarchy using the atomic core.""",
-)
-
-parser.add_argument(
-    "--num-invocations",
-    type=int,
-    default=200,
-    help="""Number of invocation to be measured.""",
 )
 
 parser.add_argument(
@@ -83,6 +65,12 @@ parser.add_argument(
             run the actual measurements using the specified core.""",
 )
 
+cpu_types = {
+    "atomic": CPUTypes.ATOMIC,
+    "timing": CPUTypes.TIMING,
+    "o3": CPUTypes.O3,
+}
+
 parser.add_argument(
     "--cpu-type",
     type=str,
@@ -92,14 +80,32 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--disable-fdp",
+    "--fdp",
     action="store_true",
-    help="Disable FDP to get evaluate baseline",
+    default=False,
+    help="Enable FDP",
+)
+
+isa_choices = {
+    "X86": ISA.X86,
+    "Arm": ISA.ARM,
+    "RiscV": ISA.RISCV,
+}
+
+parser.add_argument(
+    "--isa",
+    type=str,
+    default="X86",
+    help="The ISA to simulate.",
+    choices=isa_choices.keys(),
 )
 
 args = parser.parse_args()
 
-if not args.disable_fdp:
-    args.fdp = True
-else:
-    args.fdp = False
+
+def isa_to_arch(isa: str) -> str:
+    match isa:
+        case "X86": return "amd64"
+        case "Arm": return "arm"
+        case "RiscV": return "riscv"
+        case _: raise ValueError(f"Unsupported ISA: {isa}")
