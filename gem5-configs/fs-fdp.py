@@ -35,23 +35,30 @@ Usage
 -----
 
 ```
-scons build/<ALL|ARM>/gem5.opt -j<NUM_CPUS>
-./build/<ALL|ARM>/gem5.opt arm-fdp.py
-    --mode <setup/eval> --function <function-name>
+scons build/<ALL|X86|ARM>/gem5.opt -j<NUM_CPUS>
+./build/<ALL|ARM|gem5.opt fs-fdp.py
+    --mode <setup/eval> --workload <benchmark>
     --kernel <path-to-vmlinux> --disk <path-to-disk-image>
-    --atomic-warming <num-inv-to-warm> --num-invocations <num-inv-to-simulate>
+    [--cpu <cpu-type>] [--fdp]
 ```
 
 """
+from pathlib import Path
+from typing import Iterator
+
 import m5
 
-from gem5.components.boards.arm_board import ArmBoard
-from gem5.components.boards.x86_board import X86Board
-from gem5.components.memory import DualChannelDDR4_2400
-from gem5.components.processors.cpu_types import CPUTypes
-from gem5.components.processors.simple_processor import SimpleProcessor
-from gem5.isas import ISA
-from gem5.resources.resource import KernelResource,DiskImageResource, obtain_resource
+from m5.objects import (
+    SimpleBTB,
+    LTAGE,
+    TAGE_SC_L_64KB,
+    ITTAGE,
+    MultiPrefetcher,
+    TaggedPrefetcher,
+    FetchDirectedPrefetcher,
+    L2XBar,
+)
+from gem5.resources.resource import obtain_resource,KernelResource,DiskImageResource
 from gem5.simulate.exit_event import ExitEvent
 from gem5.simulate.simulator import Simulator
 from gem5.utils.requires import requires
@@ -60,35 +67,26 @@ from gem5.components.cachehierarchies.classic.caches.l1icache import L1ICache
 from gem5.components.cachehierarchies.classic.caches.mmu_cache import MMUCache
 from gem5.components.cachehierarchies.classic.caches.l1dcache import L1DCache
 from gem5.components.cachehierarchies.classic.caches.l2cache import L2Cache
-from gem5.components.cachehierarchies.classic.private_l1_private_l2_cache_hierarchy import (
-    PrivateL1PrivateL2CacheHierarchy
-)
+from gem5.components.cachehierarchies.classic.private_l1_private_l2_cache_hierarchy import PrivateL1PrivateL2CacheHierarchy
+from gem5.components.memory import DualChannelDDR4_2400
+from gem5.components.processors.cpu_types import CPUTypes
+from gem5.components.processors.simple_processor import SimpleProcessor
 
-from pathlib import Path
 
 from util.workloads import *
 from util.arguments import *
 
+# This check ensures the gem5 binary is compiled to the correct ISA target.
+# If not, an exception will be thrown.
+requires(isa_required=isa_choices[args.isa])
 
-# This runs a check to ensure the gem5 binary is compiled for ARM.
-requires(isa_required=ISA.ARM)
+arch = isa_to_arch(args.isa)
 
-from m5.objects import (
-    LTAGE,
-    SimpleBTB,
-    SimpleIndirectPredictor,
-    TAGEBase,
-    TaggedPrefetcher,
-    FetchDirectedPrefetcher,
-    L2XBar,
-    ArmDefaultRelease,
-    VExpress_GEM5_V1,
-)
-
-checkpoint_dir = "wkdir/checkpoints"
-
+# Path to the checkpoint directory
+checkpoint_dir = f"wkdir/{arch}/checkpoints"
 if args.mode == "setup":
     Path("{}/{}".format(checkpoint_dir, args.workload)).mkdir(parents=True, exist_ok=True)
+
 
 
 # Here we setup the processor. For booting we take the KVM core and
@@ -96,94 +94,61 @@ if args.mode == "setup":
 
 processor = SimpleProcessor(
     cpu_type=CPUTypes.KVM if args.mode=="setup" else cpu_types[args.cpu_type],
-    isa=ISA.ARM,
+    isa=isa_choices[args.isa],
     num_cores=2,
 )
 cpu = processor.cores[-1].core
 
 
-
-
-## FDP needs the AssociativeBTB.
 class BTB(SimpleBTB):
-    numEntries = 8192
-    associativity = 4
+    numEntries = 16*1024
+    associativity = 8
 
-class IndirectPred(SimpleIndirectPredictor):
-    indirectSets = 512 # Cache sets for indirect predictor
-    indirectWays = 4 # Ways for indirect predictor
-    indirectPathLength = 7 # Previous indirect targets to use for path history
-    indirectGHRBits = 16 # Indirect GHR number of bits
-    speculativePathLength = 20
-    instShiftAmt = 0
 
-class TAGE_64KB_N(TAGEBase):
-    # From https://jilp.org/jwac-2/program/cbp3_03_seznec.pdf
-    nHistoryTables = 15
-    minHist = 8
-    maxHist = 2000
-
-    tagTableUBits = 1
-    tagTableTagWidths = [0,  8,  8, 11, 11, 11, 11, 11, 13, 13, 13, 13, 13, 13, 14, 14]
-    logTagTableSizes = [15, 12, 12, 14, 14, 14, 14, 14, 13, 13, 13, 13, 13, 13, 10, 10]
-
-    numUseAltOnNa=16
-
-    logUResetPeriod=10
-    maxNumAlloc=2
-    pathHistBits=27
-    speculativeHistUpdate=True
-
-    tagTableCounterBits=3
-    tagTableUBits=1
-    useAltOnNaBits=5
 
 class BPLTage(LTAGE):
     instShiftAmt = 0
-    indirectBranchPred = IndirectPred()
-    BTB = BTB()
-    tage = TAGE_64KB_N(maxHist=2000)
+    btb = BTB()
+    indirectBranchPred=ITTAGE()
+    requiresBTBHit = True
+
+
+class BPTageSCL(TAGE_SC_L_64KB):
+    instShiftAmt = 0
+    btb = BTB()
+    indirectBranchPred=ITTAGE()
     requiresBTBHit = True
 
 
 
-cpu.branchPred = BPLTage()
-cpu.branchPred.tage.speculativeHistUpdate=True
 
-cpu.fetchBufferSize = 16
-cpu.fetchTargetWidth = 32
+if args.mode == "eval":
+    cpu.numROBEntries=576
+    cpu.LQEntries=190
+    cpu.SQEntries=120
+    cpu.numIQEntries=128*2
+    cpu.fetchBufferSize = 32
 
-if args.fdp:
-    # We need to configure the decoupled front-end with some specific parameters.
-    # First the fetch buffer and fetch target size. We want double the size of
-    # the fetch buffer to be able to run ahead of fetch
-    print("!! FDP enabled !!")
-    cpu.bacBranchPredictDelay = 1
-    cpu.minInstSize = 1
-    cpu.decoupledFrontEnd = True
+    # Configure the branch predictor
+    cpu.branchPred = BPTageSCL()
+
+    if args.fdp:
+        # We need to configure the decoupled front-end with some specific parameters.
+        # First the fetch buffer and fetch target size. We want double the size of
+        # the fetch buffer to be able to run ahead of fetch
+        cpu.fetchTargetWidth = 64
+        cpu.numFTQEntries = 24
+        cpu.minInstSize = 1 if args.isa == "X86" else 4
+        cpu.decoupledFrontEnd = True
+        # cpu.fetchQueueSize = 16
+        cpu.branchPred.takenOnlyHistory=True
+
 
 
 # 2. Instruction prefetcher ---------------------------------------------
 # The decoupled front-end is only the first part.
 # Now we also need the instruction prefetcher which listens to the
 # insertions into the fetch target queue (FTQ) to issue prefetches.
-
-# Create the icache and the prefetcher
-icache = L1ICache(size="32kB")
-
-if not args.fdp:
-    # If FDP is disabled we use the TaggedPrefetcher (Next-Line Prefetcher)
-    icache.prefetcher = TaggedPrefetcher()
-else:
-    ## Setup the FDP prefetcher
-    icache.prefetcher = FetchDirectedPrefetcher(
-        use_virtual_addresses=True,
-        # The FDP prefetcher needs to know to which CPU to listent to.
-        cpu=cpu,
-    )
-
-# Register the MMU to allow address translation
-icache.prefetcher.registerMMU(processor.cores[0].core.mmu)
 
 
 class CacheHierarchy(PrivateL1PrivateL2CacheHierarchy):
@@ -200,22 +165,30 @@ class CacheHierarchy(PrivateL1PrivateL2CacheHierarchy):
             L1ICache(size=self._l1i_size)
             for i in range(board.get_processor().get_num_cores())
         ]
-        cpu1 = board.get_processor().cores[1].core
+        cpu1 = board.get_processor().cores[-1].core
 
-        self.l1icaches[1].prefetcher = FetchDirectedPrefetcher(use_virtual_addresses=True, cpu=cpu1)
+        self.l1icaches[-1].prefetcher = MultiPrefetcher()
+        if args.fdp:
+            self.l1icaches[-1].prefetcher.prefetchers.append(
+                FetchDirectedPrefetcher(use_virtual_addresses=True, cpu=cpu1)
+            )
+        self.l1icaches[-1].prefetcher.prefetchers.append(
+                TaggedPrefetcher(use_virtual_addresses=True)
+            )
 
-        self.l1icaches[1].prefetcher.registerMMU(cpu1.mmu)
+        for pf in self.l1icaches[-1].prefetcher.prefetchers:
+            pf.registerMMU(cpu1.mmu)
 
         self.l1dcaches = [
             L1DCache(size=self._l1d_size)
-            for _ in range(board.get_processor().get_num_cores())
+            for i in range(board.get_processor().get_num_cores())
         ]
         self.l2buses = [
-            L2XBar() for _ in range(board.get_processor().get_num_cores())
+            L2XBar() for i in range(board.get_processor().get_num_cores())
         ]
         self.l2caches = [
             L2Cache(size=self._l2_size)
-            for _ in range(board.get_processor().get_num_cores())
+            for i in range(board.get_processor().get_num_cores())
         ]
         self.mmucaches = [
             MMUCache(size="8KiB")
@@ -223,7 +196,7 @@ class CacheHierarchy(PrivateL1PrivateL2CacheHierarchy):
         ]
 
         self.mmubuses = [
-            L2XBar(width=64) for _ in range(board.get_processor().get_num_cores())
+            L2XBar(width=64) for i in range(board.get_processor().get_num_cores())
         ]
 
 
@@ -260,31 +233,71 @@ cache_hierarchy = CacheHierarchy(
     l1i_size="32KiB", l1d_size="32KiB", l2_size="1MB"
 )
 
-memory = DualChannelDDR4_2400(size="3GB")
 
 
-# The ArmBoard requires a `release` to be specified. This adds all the
-# extensions or features to the system. We are setting this to Armv8
-# (ArmDefaultRelease) in this example config script.
-release = ArmDefaultRelease.for_kvm()
 
-# The platform sets up the memory ranges of all the on-chip and off-chip
-# devices present on the ARM system. ARM KVM only works with VExpress_GEM5_V1
-# on the ArmBoard at the moment.
-platform = VExpress_GEM5_V1()
-
-# Here we setup the board. The ArmBoard allows for Full-System ARM simulations.
-board = ArmBoard(
-    clk_freq="3GHz",
-    processor=processor,
-    memory=memory,
-    cache_hierarchy=cache_hierarchy,
-    release=release,
-    platform=platform,
-)
+# Memory: Dual Channel DDR4 2400 DRAM device.
+memory = DualChannelDDR4_2400(size="3GiB")
 
 
-def executeExit():
+# Here we setup the board.
+if args.isa == "Arm":
+    #  The ArmBoard allows for Full-System ARM simulations.
+    from gem5.components.boards.arm_board import ArmBoard
+    from m5.objects import (
+        ArmDefaultRelease,
+        VExpress_GEM5_V1,
+    )
+
+    board = ArmBoard(
+        clk_freq="3GHz",
+        processor=processor,
+        memory=memory,
+        cache_hierarchy=cache_hierarchy,
+        # The ArmBoard requires a `release` to be specified. This adds all the
+        # extensions or features to the system. We are setting this to Armv8
+        # (ArmDefaultRelease) in this example config script.
+        release = ArmDefaultRelease.for_kvm(),
+        # The platform sets up the memory ranges of all the on-chip and
+        # off-chip devices present on the ARM system. ARM KVM only works with
+        # VExpress_GEM5_V1 on the ArmBoard at the moment.
+        platform = VExpress_GEM5_V1(),
+    )
+
+elif args.isa == "X86":
+    # The X86Board allows for Full-System X86 simulations.
+    from gem5.components.boards.x86_board import X86Board
+    board = X86Board(
+        clk_freq="3GHz",
+        processor=processor,
+        memory=memory,
+        cache_hierarchy=cache_hierarchy,
+    )
+else:
+    raise ValueError("ISA not supported")
+
+
+
+def workitems(start) -> Iterator[bool]:
+    cnt = 1
+    while True:
+        if start:
+            print("Begin Invocation ", cnt)
+        else:
+            print("End Invocation ", cnt)
+            if args.mode == "eval":
+                m5.stats.dump()
+                m5.stats.reset()
+
+            cnt += 1
+
+        if args.mode == "eval" and cnt >= args.num_invocations:
+            yield True
+        yield False
+
+
+def executeExit() -> Iterator[bool]:
+
     if args.mode == "setup":
 
         print("1: BOOTING complete")
@@ -302,11 +315,12 @@ def executeExit():
     else:
         print("Simulation done")
         m5.stats.dump()
-        yield True
+        m5.exit()
 
 
 
-def executeFail():
+def executeFail() -> Iterator[bool]:
+
     while True:
         fc = simulator.get_last_exit_event_code()
         print("Fail code: ", fc)
@@ -320,38 +334,49 @@ def executeFail():
 
 
 
-delta = 100_000_000
+delta = 50_000_000
 
-
-def maxInsts():
+def maxInsts() -> Iterator[bool]:
     sim_instr = 0
-    max_instr = 10_000_000_000
+    max_instr = 1_000_000_000
 
     while True:
-        m5.stats.dump() 
+        m5.stats.dump()
         m5.stats.reset()
         sim_instr += delta
         print("Simulated Instructions: ", sim_instr)
+        # simulator.schedule_max_insts(delta)
         processor.cores[-1]._set_inst_stop_any_thread(delta, True)
         if sim_instr >= max_instr:
             yield True
         yield False
 
 
+kernel_args = [
+    'isolcpus=1',
+    'cloud-init=disabled',
+    'mitigations=off',
+]
+if args.isa == "Arm":
+    kernel_args += [
+        "console=ttyAMA0",
+        "lpj=19988480", "norandmaps",
+        "root=/dev/vda2",
+    ]
+elif args.isa == "X86":
+    kernel_args += [
+        "console=ttyS0",
+        "lpj=7999923",
+        "root=/dev/sda2",
+    ]
 
 # Here we set a full system workload.
 board.set_kernel_disk_workload(
     kernel=KernelResource(args.kernel),
     disk_image=DiskImageResource(args.disk),
-    bootloader=obtain_resource("arm64-bootloader"),
+    bootloader=obtain_resource("arm64-bootloader") if args.isa == "Arm" else None,
     readfile_contents=wlcfg[args.workload]["runscript"](wlcfg[args.workload], 1),
-    kernel_args=["console=ttyAMA0",
-                 "lpj=19988480", "norandmaps",
-                 "root=/dev/vda2", "disk_device=/dev/vda2",
-                 'isolcpus=1',
-                 'cloud-init=disabled',
-                 'mitigations=off',
-                ],
+    kernel_args=kernel_args,
     checkpoint=Path("{}/{}".format(checkpoint_dir, args.workload)) if args.mode=="eval" else None,
 )
 
@@ -360,6 +385,7 @@ class MySimulator(Simulator):
         return self._last_exit_event.getCode()
 
 
+# We define the system with the aforementioned system defined.
 simulator = MySimulator(
     board=board,
     on_exit_event={
@@ -372,7 +398,9 @@ simulator = MySimulator(
 
 
 if args.mode == "eval":
+    # simulator.schedule_max_insts(delta)
     processor.cores[-1]._set_inst_stop_any_thread(delta, False)
+
 
 
 # Once the system successfully boots, it encounters an
@@ -380,7 +408,3 @@ if args.mode == "eval":
 # simulation has ended you may inspect `m5out/board.terminal` to see
 # the stdout.
 simulator.run()
-
-print("Simulation finished at tick {} because {}.".format(
-    m5.curTick(), simulator.get_last_exit_event_code()
-))
