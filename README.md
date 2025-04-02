@@ -38,13 +38,13 @@ cd image
 sudo ./build-x86.sh 22.04   
 cd ..
 
-# Building the disk image for arm Ubuntu 22.04
+# Building the disk image for arm Ubuntu 24.04 (22.04 not supported)
 cd image
-sudo ./build-arm.sh 22.04   
+sudo ./build-arm.sh 24.04   
 cd ..
 ```
 
-Depending on the type of machine the building process can take a while (x86 ~10min, arm ~30min). Once completed the new base image will be placed in the `<x86/arm>-disk-image-22-04` directory.
+Depending on the type of machine the building process can take a while (x86 ~10min, arm ~30min). Once completed the new base image will be placed in the `x86-disk-image-22-04 / arm-disk-image-24-04` directory.
 
 
 ### Install the benchmarks on the disks
@@ -70,9 +70,9 @@ Then boot the image with
 ```
 make -f image/Makefile run-<x86/arm> 
 ```
-Finally, for debugging purposes, you can use another terminal login via ssh using port 5555.
+Finally, for debugging purposes, you can use another terminal login via ssh using port 8888.
 ```
-ssh gem5@localhost -p 5555
+ssh gem5@localhost -p 8888
 ```
 
 
@@ -85,28 +85,32 @@ Before we can start simulating the actual benchmark (1) linux has to be booted, 
 The KVM accelerated core is used to perform all three steps after which a checkpoint is taken.
 > Note KVM can only be used if the host ISA is the same as the simulated system.
 
-### On x86
-```bash
-# Simulate
-./<path/to/gem5>/build/X86/gem5.opt gem5-configs/x86-simple.py --kernel wkdir/kernel --disk wkdir/disk.img --mode=setup 
-```
-
-
-### On Arm ISA
+### Automated setup
+To generate all checkpoints, consider the `scripts/setup-all.sh` script:
 
 ```bash
-# Start the setup phase with gem5 and take a checkpoint
-./<path/to/gem5>/build/ARM/gem5.opt gem5-configs/arm-simple.py --kernel wkdir/kernel --disk wkdir/disk.img --mode=setup
+# Edit the GEM5 variable at the top to point to a valid GEM5 binary
+vim ./scripts/setup-all.sh
+# Execute the script
+bash ./scripts/setup-all.sh
 ```
-This will take 5-10 minutes. The progress can be inspected via the `m5term` terminal or the redirected `board.terminal` log in the output directory.
+
+This will take 5-10 minutes. The output can be inspected in the following ways: 
+- See the process state with `pueue status` (running / failed ...)
+- View the gem5 log (`gem5.log`) or the Linux output (`board.terminal`) in the `results/<arch>/setup/*` output directories
 
 
 ## Simulation
 
-Once the setup step has been performed and the checkpoint is taken simulations can be performed by invoking the same script with the `--mode=eval` parameter.
+After the checkpoints were taken, the simulation can be executed via the `scripts/run-all.sh` script:
 
-### On Arm
 ```bash
-# Simulate
-./<path/to/gem5>/build/ARM/gem5.opt gem5-configs/arm-simple.py --kernel wkdir/kernel --disk wkdir/disk.img --mode=eval
+# Edit the GEM5 variable at the top to point to a valid GEM5 binary
+# Adjust the other variables to select benchmarks and the architecture
+vim ./scripts/run-all.sh
+# Start the simulation, giving it a label to identify the experiment later
+bash ./scripts/run-all.sh <SCENARIO_NAME>
 ```
+
+Similar to the setup process, the output can be observed in the `results/<arch>/<SCENARIO_NAME>/*` folders
+
