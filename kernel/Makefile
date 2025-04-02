@@ -33,7 +33,7 @@ LINUX_DIR 	:= linux/
 OUTPUT		?=
 
 KVERSION	?= v5.15.59
-ARCH		?= amd64
+ARCH		?= $(shell dpkg --print-architecture)
 KERNEL_CONFIG_GEM5 := $(ROOT)/kernel/configs/$(KVERSION)-$(ARCH).config
 KERNEL_CONFIG := $(LINUX_DIR)/.config
 KERNEL_PATCH_GEM5 := $(ROOT)/kernel/kernel_m5.patch
@@ -41,9 +41,9 @@ KERNEL_PATCH_GEM5 := $(ROOT)/kernel/kernel_m5.patch
 
 BUILD_OBJ 	:= $(LINUX_DIR)/vmlinux
 
-.PONY: all config
+.PHONY: all config
 
-all: build save
+all: build
 
 ## Dependencies -------------------------------------------------
 ## Install all dependencies to build linux kernel
@@ -94,8 +94,6 @@ build: build-arm64
 else
 build: build-amd64
 endif
-
-
 
 clean:
 	rm -rf $(LINUX_DIR)
