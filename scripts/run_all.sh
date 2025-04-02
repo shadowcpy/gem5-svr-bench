@@ -25,15 +25,17 @@
 
 set -xu
 
-GEM5=./../build/ALL/gem5.opt
+GEM5=./../build/ARM/gem5.opt
 GEM5_CONFIG=./gem5-configs/fs-fdp.py
 
-ISA="Arm"
+ARCH="arm64"
 CPU_TYPE="o3"
 
 BENCHMARKS=()
 BENCHMARKS+=("nodeapp")
 BENCHMARKS+=("nodeapp-nginx") 
+BENCHMARKS+=("mediawiki")
+BENCHMARKS+=("mediawiki-nginx")
 BENCHMARKS+=("proto")
 BENCHMARKS+=("swissmap")
 BENCHMARKS+=("libc")
@@ -45,7 +47,17 @@ BENCHMARKS+=("stl")
 
 # ---------------------
 
-ARCH=$(dpkg --print-architecture)
+# Architecture to ISA mapping
+if [ "$ARCH" == "amd64" ]; then
+    ISA="x86"
+elif [ "$ARCH" == "arm64" ]; then
+    ISA="Arm"
+elif [ "$ARCH" == "risc" ]; then
+    ISA="Riscv"
+else
+    echo "Unsupported architecture: $ARCH"
+    exit 1
+fi
 
 KERNEL="./wkdir/$ARCH/kernel"
 DISK_IMAGE="./wkdir/$ARCH/disk.img"
