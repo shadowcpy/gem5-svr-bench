@@ -17,7 +17,7 @@ variable "ssh_username" {
 
 source "null" "remote" {
   ssh_host = "localhost"
-  ssh_port = "5555"
+  ssh_port = "8888"
   ssh_password     = "${var.ssh_password}"
   ssh_username     = "${var.ssh_username}"
   ssh_handshake_attempts = "30"
@@ -102,10 +102,6 @@ build {
 
 
   ## Fleetbench provisioning --------------------------
-  provisioner "file" {
-    destination = "fleetbench.patch"
-    source      = "${local.rootdir}/benchmarks/fleetbench/fleetbench.patch"
-  }
 
   # 
   provisioner "shell" {

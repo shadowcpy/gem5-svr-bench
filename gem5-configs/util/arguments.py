@@ -106,6 +106,6 @@ args = parser.parse_args()
 def isa_to_arch(isa: str) -> str:
     match isa:
         case "X86": return "amd64"
-        case "Arm": return "arm"
+        case "Arm": return "arm64"
         case "RiscV": return "riscv"
         case _: raise ValueError(f"Unsupported ISA: {isa}")

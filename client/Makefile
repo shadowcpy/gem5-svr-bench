@@ -27,7 +27,7 @@
 MKFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
 ROOT 		:= $(abspath $(dir $(MKFILE))/../)
 OUTPUT ?= test-client
-ARCH   ?= amd64
+ARCH   ?= $(shell dpkg --print-architecture)
 
 # Go parameters
 GOCMD=$(shell which go)

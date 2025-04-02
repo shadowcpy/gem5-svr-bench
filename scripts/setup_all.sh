@@ -3,7 +3,7 @@
 
 # MIT License
 #
-# Copyright (c) 2022 David Schall and EASE lab
+# Copyright (c) 2025 Technical University of Munich
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Execute this script using
-#   ./setup_all_functions.sh <results>
-
 set -xu
-
-ARCH=$(dpkg --print-architecture)
-
 
 GEM5=./../build/ALL/gem5.opt
 GEM5_CONFIG=./gem5-configs/fs-fdp.py
-
-KERNEL="./wkdir/$ARCH/kernel"
-DISK_IMAGE="./wkdir/$ARCH/disk.img"
-
-
-
-
-
-
-
-
-
-################################################################################
-sudo chown $(id -u) /dev/kvm
-
-
 
 BENCHMARKS=()
 BENCHMARKS+=("nodeapp")
@@ -64,14 +42,38 @@ BENCHMARKS+=("hashing")
 BENCHMARKS+=("stl")
 
 
+# ----------------------
+
+ARCH=$(dpkg --print-architecture)
+
+# Architecture to ISA mapping
+if [ "$ARCH" == "amd64" ]; then
+    ISA="x86"
+elif [ "$ARCH" == "arm64" ]; then
+    ISA="Arm"
+elif [ "$ARCH" == "risc" ]; then
+    ISA="Riscv"
+else
+    echo "Unsupported architecture: $ARCH"
+    exit 1
+fi
 
 
+KERNEL="./wkdir/$ARCH/kernel"
+DISK_IMAGE="./wkdir/$ARCH/disk.img"
 
-
-# Define the output file of your run
 RESULTS_DIR="./results/$ARCH/setup"
 
+if ! pgrep -x "pueued" > /dev/null
+then
+    pueued -d
+fi
 
+PGROUP="setup-$ARCH"
+
+pueue group add -p 100 "$PGROUP" || true
+
+sudo chown $(id -u) /dev/kvm
 
 for bm in "${BENCHMARKS[@]}";
 do
@@ -80,12 +82,14 @@ do
     ## Create output directory
     mkdir -p $OUTDIR
 
-    screen -d -S "setup-$bm" -m bash -c "$GEM5 \
+
+    pueue add -g "$PGROUP" -l "setup-$bm" -- "$GEM5 \
         --outdir=$OUTDIR \
             $GEM5_CONFIG \
                 --kernel $KERNEL \
                 --disk $DISK_IMAGE \
                 --workload ${bm} \
+                --isa $ISA \
                 --mode=setup \
             > $OUTDIR/gem5.log 2>&1"
 

@@ -27,7 +27,7 @@ ROOT 		:= $(abspath $(dir $(MKFILE))/../)
 ARCH = $(shell dpkg --print-architecture)
 
 ## User specific inputs
-WORKING_DIR ?= $(ROOT)/wkdir/
+WORKING_DIR ?= $(ROOT)/wkdir/$(ARCH)
 
 
 ## Machine parameter
@@ -37,12 +37,14 @@ CPU 	?= host -enable-kvm
 
 
 ## Required artifacts
-TMP_DIR := $(ROOT)/image/tmp/
+TMP_DIR := $(ROOT)/image/tmp
 
 
 CLIENT 	:= $(TMP_DIR)/http-client
+KERNEL 	:= $(TMP_DIR)/kernel
+
 ifeq ($(ARCH), arm64)
-    DISK := $(ROOT)/image/arm-disk-image-22-04/arm-ubuntu
+    DISK := $(ROOT)/image/arm-disk-image-24-04/arm-ubuntu
 else
     DISK := $(ROOT)/image/x86-disk-image-22-04/x86-ubuntu
 endif
@@ -59,6 +61,10 @@ $(CLIENT): $(TMP_DIR)
 	cp $(ROOT)/client/http-client $@
 	
 
+$(KERNEL): $(TMP_DIR)
+	cd $(ROOT)/kernel && \
+	ARCH=$(ARCH) make all
+	cp $(ROOT)/kernel/linux/vmlinux $@
 
 
 ##################################################################
@@ -76,12 +82,8 @@ $(WORKING_DIR):
 	@echo "Create folder: $(WORKING_DIR)"
 	mkdir -p $@
 
-# $(WK_KERNEL): $(KERNEL)
-# 	cp $< $@
-
-$(WK_KERNEL): 
-	wget -O $@ https://github.com/vhive-serverless/vSwarm-u/releases/download/v0.3.0/vmlinux-jammy-${ARCH}
-
+$(WK_KERNEL): $(KERNEL)
+	cp $< $@
 
 $(WK_CLIENT): $(CLIENT)
 	cp $< $@

@@ -45,8 +45,8 @@ locals {
       http_directory = "http/arm-22-04"
     }
     "24.04" = {
-      iso_url       = "https://cdimage.ubuntu.com/releases/24.04/release/ubuntu-24.04-live-server-arm64.iso"
-      iso_checksum  = "sha256:d2d9986ada3864666e36a57634dfc97d17ad921fa44c56eeaca801e7dab08ad7"
+      iso_url       = "https://cdimage.ubuntu.com/releases/24.04/release/ubuntu-24.04.2-live-server-arm64.iso"
+      iso_checksum  = "sha256:9fd122eedff09dc57d66e1c29acb8d7a207e2a877e762bdf30d2c913f95f03a4"
       output_dir    = "arm-disk-image-24-04"
       http_directory = "http/arm-24-04"
     }
