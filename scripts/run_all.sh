@@ -25,10 +25,10 @@
 
 set -xu
 
-GEM5=./../build/ARM/gem5.opt
+GEM5=./../build/ALL/gem5.opt
 GEM5_CONFIG=./gem5-configs/fs-fdp.py
 
-ARCH="arm64"
+ARCH="amd64"
 CPU_TYPE="o3"
 
 BENCHMARKS=()
@@ -49,11 +49,11 @@ BENCHMARKS+=("stl")
 
 # Architecture to ISA mapping
 if [ "$ARCH" == "amd64" ]; then
-    ISA="x86"
+    ISA="X86"
 elif [ "$ARCH" == "arm64" ]; then
     ISA="Arm"
 elif [ "$ARCH" == "risc" ]; then
-    ISA="Riscv"
+    ISA="RiscV"
 else
     echo "Unsupported architecture: $ARCH"
     exit 1

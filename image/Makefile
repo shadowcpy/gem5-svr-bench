@@ -40,8 +40,9 @@ CPU 	?= host -enable-kvm
 TMP_DIR := $(ROOT)/image/tmp
 
 
-CLIENT 	:= $(TMP_DIR)/http-client
-KERNEL 	:= $(TMP_DIR)/kernel
+CLIENT 			:= $(TMP_DIR)/http-client
+DOWNLOAD_KERNEL := $(TMP_DIR)/kernel
+BUILD_KERNEL 	:= $(TMP_DIR)/kernel
 
 ifeq ($(ARCH), arm64)
     DISK := $(ROOT)/image/arm-disk-image-24-04/arm-ubuntu
@@ -61,7 +62,10 @@ $(CLIENT): $(TMP_DIR)
 	cp $(ROOT)/client/http-client $@
 	
 
-$(KERNEL): $(TMP_DIR)
+$(DOWNLOAD_KERNEL): $(TMP_DIR)
+	wget -O $@ https://github.com/dhschall/gem5-svr-bench/releases/download/latest/vmlinux-v5.15.59-${ARCH} 
+
+$(BUILD_KERNEL): $(TMP_DIR)
 	cd $(ROOT)/kernel && \
 	ARCH=$(ARCH) make all
 	cp $(ROOT)/kernel/linux/vmlinux $@
@@ -72,7 +76,7 @@ $(KERNEL): $(TMP_DIR)
 #
 WK_KERNEL 	:= $(WORKING_DIR)/kernel
 WK_DISK 	:= $(WORKING_DIR)/disk.img
-WK_CLIENT	:= $(WORKING_DIR)/test-client
+WK_CLIENT	:= $(WORKING_DIR)/http-client
 
 build-wkdir: $(WORKING_DIR) $(TMP_DIR) \
 	$(WK_DISK) $(WK_KERNEL) $(WK_CLIENT)
@@ -82,7 +86,8 @@ $(WORKING_DIR):
 	@echo "Create folder: $(WORKING_DIR)"
 	mkdir -p $@
 
-$(WK_KERNEL): $(KERNEL)
+# Change this to BUILD_KERNEL to build the kernel yourself
+$(WK_KERNEL): $(DOWNLOAD_KERNEL)
 	cp $< $@
 
 $(WK_CLIENT): $(CLIENT)

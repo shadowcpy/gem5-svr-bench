@@ -148,7 +148,7 @@ class BTB(SimpleBTB):
 
 class BPLTage(LTAGE):
     instShiftAmt = 0
-    BTB = BTB()
+    btb = BTB()
     requiresBTBHit = True
 
 

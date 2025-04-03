@@ -26,20 +26,16 @@
 
 MKFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
 ROOT 		:= $(abspath $(dir $(MKFILE))/../)
-OUTPUT ?= test-client
+OUTPUT ?= http-client
 ARCH   ?= $(shell dpkg --print-architecture)
 
 # Go parameters
 GOCMD=$(shell which go)
 GOCMD=/usr/local/go/bin/go
 
-.PHONY: m5ops
 .PHONY: clean
 
-SRC=m5ops.go
 BIN=http-client
-
-
 
 dep_install:
 	sudo apt-get update \
@@ -55,67 +51,12 @@ install_go:
 	go version
 
 
-## Configure the m5 address depending on the architecture
-ifeq ($(ARCH), arm64)
-M5OP_ADDR=0x10010000
-else
-M5OP_ADDR=0xffff0000
-endif
-
-## Assembly files
-M5OP_S := $(DIR)/m5op.S
-$(M5OP_S):
-	cp $(DIR)/$(ARCH)/* $(DIR)
-
-
-## m5 ops library -------------------------
-CC = gcc
-AR = ar
-RANLIB = ranlib
-ifeq ($(ARCH), arm64)
-ifeq ($(shell uname -i),x86_64)
-CC = aarch64-linux-gnu-gcc
-AR = aarch64-linux-gnu-ar
-RANLIB = aarch64-linux-gnu-ranlib
-endif
-endif
-
-CFLAGS = -g -fPIC
-DIR = m5
-
-SFILES :=$(DIR)/m5op.S $(DIR)/m5op_addr.S
-OBJFILES := $(DIR)/m5_mmap.o $(SFILES:.S=.o)
-
-
-%.o : %.S
-		$(CC) -o $@ $< -c -g -fPIC
-
-$(DIR)/m5_mmap.o : $(DIR)/m5_mmap.c
-		$(CC) -DM5OP_ADDR=$(M5OP_ADDR) -o $@ $< -c -g -fPIC
-
-m5ops: $(OBJFILES)
-		$(AR) rc -o $(DIR)/lib$@.a $^
-		$(RANLIB) $(DIR)/lib$@.a
-
-m5lib: $(M5OP_S) m5ops
-## ----------------------------------------
-
-
-
-_CGO_LDFLAGS="-g -O2 -no-pie"
-
-$(BIN): main.go m5lib
-	CC=$(CC) CGO_CFLAGS="-DM5OP_ADDR=$(M5OP_ADDR)" CGO_LDFLAGS=$(_CGO_LDFLAGS) CGO_ENABLED=1 GOOS=linux GOARCH=$(ARCH) go build -o $@ -v main.go
-
+$(BIN): main.go
+	GOOS=linux GOARCH=$(ARCH) go build -o $@ -v main.go
 
 all: $(BIN)
 
-libclean:
-	rm $(DIR)/*.o
-	rm $(DIR)/*.a
-	rm $(DIR)/*.S
-
-clean: libclean
+clean:
 	go clean
 
 

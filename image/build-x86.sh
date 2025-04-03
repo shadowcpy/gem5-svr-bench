@@ -3,12 +3,15 @@
 # Copyright (c) 2024 The Regents of the University of California.
 # SPDX-License-Identifier: BSD 3-Clause
 
-PACKER_VERSION="1.10.0"
+PACKER_VERSION="1.11.2"
 
-if [ ! -f ./packer ]; then
+if [ ! -f /usr/local/bin/packer ]; then
     wget https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip;
     unzip packer_${PACKER_VERSION}_linux_amd64.zip;
     rm packer_${PACKER_VERSION}_linux_amd64.zip;
+    rm LICENSE.txt
+    mv packer /usr/local/bin/packer
+    chmod +x /usr/local/bin/packer
 fi
 
 # Check if the Ubuntu version variable is provided
@@ -28,7 +31,7 @@ if [[ "$ubuntu_version" != "22.04" && "$ubuntu_version" != "24.04" ]]; then
 fi
 
 # Install the needed plugins
-./packer init ./packer-scripts/x86-ubuntu.pkr.hcl
+/usr/local/bin/packer init ./packer-scripts/x86-ubuntu.pkr.hcl
 
 # Build the image with the specified Ubuntu version
-./packer build -var "ubuntu_version=${ubuntu_version}" ./packer-scripts/x86-ubuntu.pkr.hcl
+/usr/local/bin/packer build -var "ubuntu_version=${ubuntu_version}" ./packer-scripts/x86-ubuntu.pkr.hcl

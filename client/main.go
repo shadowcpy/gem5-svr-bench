@@ -8,11 +8,10 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"text/template"
 	"time"
-
-	m5ops "http-client/m5"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -34,7 +33,6 @@ var (
 
 	// Client
 	_client    *http.Client
-	m5         m5ops.M5Ops
 	requestURL = ""
 	_measure   = false
 )
@@ -56,13 +54,6 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	} else {
 		log.SetLevel(log.InfoLevel)
-	}
-
-	if *m5_enable {
-		m5 = m5ops.NewM5Ops()
-		defer m5.Close()
-
-		m5.Fail(0, 20) // 20: Connection established
 	}
 
 	requestURL = fmt.Sprintf("http://%s:%s", *url, *port)
@@ -90,7 +81,10 @@ func main() {
 
 	time.Sleep(1 * time.Second)
 	// Run the actual jobs
-	m5.Fail(0, 4) // 21: Warmup done
+	if *m5_enable {
+		cmd := exec.Command("/usr/local/bin/m5", "fail", "4")
+		cmd.Run()
+	}
 	start = time.Now()
 	r, nb = runJobs(_client, rjobs, false)
 
@@ -211,7 +205,6 @@ func runJobs(client *http.Client, jobs []Job, warming bool) (int, int) {
 			log.Printf("Progress: %d/%d\n", a, numJobs)
 		}
 		if !warming && *m5_enable && *m5_interval > 0 && a%*m5_interval == 0 {
-			m5.WorkEnd(0, a) //
 		}
 	}
 	return succesful, nbytes

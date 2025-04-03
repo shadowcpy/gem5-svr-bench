@@ -48,11 +48,11 @@ ARCH=$(dpkg --print-architecture)
 
 # Architecture to ISA mapping
 if [ "$ARCH" == "amd64" ]; then
-    ISA="x86"
+    ISA="X86"
 elif [ "$ARCH" == "arm64" ]; then
     ISA="Arm"
 elif [ "$ARCH" == "risc" ]; then
-    ISA="Riscv"
+    ISA="RiscV"
 else
     echo "Unsupported architecture: $ARCH"
     exit 1
