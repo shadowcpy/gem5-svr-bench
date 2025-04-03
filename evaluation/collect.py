@@ -61,11 +61,12 @@ def main():
                 print(f"No data found in {benchmark}")
                 continue
             
+            experiment_name = f"{args.arch}_{experiment}"
 
             df = pd.DataFrame({k:pd.Series(v) for k,v in data.items()})
 
-            print(f"\nData for Experiment {experiment} Benchmark {benchmark_name}:\n {df}\n")
-            df = df.assign(experiment=experiment, benchmark=benchmark_name)
+            print(f"\nData for Experiment {experiment_name} Benchmark {benchmark_name}:\n {df}\n")
+            df = df.assign(experiment=experiment_name, benchmark=benchmark_name)
             result = pd.concat([result, df], ignore_index=True)
     
     # Save the result to a CSV file
