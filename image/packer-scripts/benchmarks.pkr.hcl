@@ -13,6 +13,10 @@ variable "ssh_username" {
   default = "gem5"
 }
 
+variable "architecture" {
+  type    = string
+  default = "arm64"
+}
 
 
 source "null" "remote" {
@@ -45,7 +49,7 @@ build {
   ### Move the client to the VM
   provisioner "file" {
     destination = "http-client"
-    source      = "${local.rootdir}/image/tmp/http-client"
+    source      = "${local.rootdir}/wkdir/${var.architecture}/http-client"
   }
 
   provisioner "shell" {
@@ -133,9 +137,7 @@ build {
     inline = [
       "sudo shutdown -h now",
     ]
-    # expect_disconnect = true
     valid_exit_codes = [ 0, 2300218 ]
-
   }
 
 }

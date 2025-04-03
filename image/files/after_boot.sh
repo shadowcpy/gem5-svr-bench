@@ -18,7 +18,7 @@ printf "In after_boot.sh...\n"
 if [ $(uname -i) == "aarch64" ];
 then
     echo "On Arm machine"
-    M5_ADDR="--addr=0x10010000"
+    M5_ADDR=""
 else
     echo "On x86 machine"
     M5_ADDR=""

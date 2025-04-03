@@ -22,6 +22,8 @@ sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-buildx-plug
 sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
 sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
 
+sudo systemctl restart docker
+
 
 # ## Disable other unnecessary services
 # systemctl disable systemd-modules-load.service

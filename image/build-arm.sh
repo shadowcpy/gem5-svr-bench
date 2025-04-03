@@ -3,14 +3,16 @@
 # Copyright (c) 2024 The Regents of the University of California.
 # SPDX-License-Identifier: BSD 3-Clause
 
-PACKER_VERSION="1.10.0"
 
-# This part installs the packer binary on the arm64 machine as we are assuming
-# that we are building the disk image on an arm64 machine.
-if [ ! -f ./packer ]; then
+PACKER_VERSION="1.11.2"
+
+if [ ! -f /usr/local/bin/packer ]; then
     wget https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_arm64.zip;
     unzip packer_${PACKER_VERSION}_linux_arm64.zip;
     rm packer_${PACKER_VERSION}_linux_arm64.zip;
+    rm LICENSE.txt
+    mv packer /usr/local/bin/packer
+    chmod +x /usr/local/bin/packer
 fi
 
 # Check if the Ubuntu version variable is provided
@@ -36,7 +38,7 @@ dd if=/usr/share/qemu-efi-aarch64/QEMU_EFI.fd of=flash0.img conv=notrunc
 cd ..
 
 # Install the needed plugins
-./packer init ./packer-scripts/arm-ubuntu.pkr.hcl
+/usr/local/bin/packer init ./packer-scripts/arm-ubuntu.pkr.hcl
 
 # Build the image with the specified Ubuntu version
-./packer build -var "ubuntu_version=${ubuntu_version}" ./packer-scripts/arm-ubuntu.pkr.hcl
+/usr/local/bin/packer build -var "ubuntu_version=${ubuntu_version}" ./packer-scripts/arm-ubuntu.pkr.hcl
