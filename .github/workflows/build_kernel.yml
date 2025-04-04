@@ -55,14 +55,11 @@ jobs:
       fail-fast: true
       matrix:
         arch: [ amd64, arm64 ]
-        version: [ jammy ]
-        include:
-          - version: jammy
-            kversion: v5.15.59
+        version: [ v5.15.59 ]
 
     env:
       ARCH: ${{ matrix.arch }}
-      KVERSION: ${{ matrix.kversion }}
+      KVERSION: ${{ matrix.version }}
 
     steps:
       - name: Check out code
