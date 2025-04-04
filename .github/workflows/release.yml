@@ -45,8 +45,9 @@ jobs:
         uses: dawidd6/action-download-artifact@v9
         with:
           workflow: build_kernel.yml
-          pattern: vmlinux-*
-          merge-multiple: true
+          name: vmlinux-*
+          name_is_regexp: true
+          merge_multiple: true
           path: tmp
 
 
