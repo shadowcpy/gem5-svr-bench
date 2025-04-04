@@ -37,31 +37,18 @@ jobs:
   prepare-release:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        arch: [ amd64, arm64 ]
-        artifact:
-          - vmlinux-v5.15.59
-
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Download Kernel
+      - name: Download Kernel Artifacts
         uses: dawidd6/action-download-artifact@v9
         with:
           workflow: build_kernel.yml
-          name: ${{ matrix.artifact }}-${{ matrix.arch }}
+          pattern: vmlinux-*
+          merge-multiple: true
           path: tmp
 
-  ## Create the release
-  create-release:
-    needs: prepare-release
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
