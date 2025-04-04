@@ -71,7 +71,7 @@ jobs:
           prerelease: true
           tag_name: ${{ github.ref }}
           name: Release ${{ github.ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN }}
 
           # Include all files prepared in the previous jobs
           files: |
