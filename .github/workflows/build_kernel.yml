@@ -95,8 +95,14 @@ jobs:
         run: |
           make -f ${{ env.MAKEFILE }} build
 
+      - name: Rename
+        shell: bash
+        run: |
+          mv linux/vmlinux vmlinux-${{ matrix.version }}-${{ matrix.arch }}
+
+          
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
           name: vmlinux-${{ matrix.version }}-${{ matrix.arch }}
-          path: linux/vmlinux
+          path: vmlinux-${{ matrix.version }}-${{ matrix.arch }}
